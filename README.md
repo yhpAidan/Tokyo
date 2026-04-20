@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026 日本深度遊 | 智慧旅行管家</title>
+    <title>2026 踐踏日本國土之旅 | 智慧旅行管家</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -61,7 +61,7 @@
     </aside>
 
     <!-- 頂部欄 -->
-    <header class="bg-white/90 backdrop-blur-md border-b border-slate-100 sticky top-0 z-[100] h-16 flex items-center px-4 shadow-sm">
+    <header class="bg-white/90 backdrop-blur-md border-b border-slate-100 sticky top-0 z-[100] h-20 flex items-center px-4 shadow-sm">
         <button onclick="toggleSidebar()" class="interactive-btn w-12 h-12 flex items-center justify-center text-slate-600 rounded-full hover:bg-slate-50">
             <i class="fa-solid fa-bars-staggered text-xl"></i>
         </button>
