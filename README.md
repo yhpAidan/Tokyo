@@ -71,7 +71,7 @@
             <i class="fa-solid fa-bars-staggered text-xl"></i>
         </button>
         <div class="flex-1 px-4 overflow-hidden text-center">
-            <h1 id="main-title" class="text-base font-bold text-slate-800 editable truncate" contenteditable="true">踐踏日本國土</h1>
+            <h1 id="main-title" class="text-base font-bold text-slate-800 editable truncate" contenteditable="true">踐踏日本國土之旅</h1>
             <p id="top-subtitle" class="text-[10px] text-wa-gold font-bold uppercase tracking-wider">Day 1 · 5/21</p>
         </div>
         <button id="save-all-btn" onclick="saveAllToCloud()" class="interactive-btn w-10 h-10 flex items-center justify-center text-emerald-500 rounded-full bg-emerald-50 shadow-sm border border-emerald-100">
@@ -139,7 +139,7 @@
     <script>
         const tripDates = ["5/21", "5/22", "5/23", "5/24", "5/25", "5/26", "5/27", "5/28", "5/29"];
         let appState = {
-            mainTitle: "2026 日本深度遊",
+            mainTitle: "踐踏日本國土之旅",
             itineraries: {
                 1: [{ cat: "交通", time: "--:--", title: "GK28 HKG -> NRT", note: "中午落地", color: "#2a4073", files: [] }],
                 2: [{ cat: "購物", time: "全日", title: "淺草全日購物", note: "淺草寺、仲見世街", color: "#10b981", files: [] }],
