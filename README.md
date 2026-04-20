@@ -149,7 +149,7 @@
             </div>
             <div class="flex gap-2">
                 <button onclick="closeCatEditor()" class="flex-1 py-3 text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl">取消</button>
-                <button onclick="applyCatChanges()" class="flex-1 py-3 text-xs font-bold text-white bg-wa-blue rounded-2xl">確定</button>
+                <button onclick="applyCatChanges()" class="flex-1 py-3 text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl">確定</button>
             </div>
         </div>
     </div>
