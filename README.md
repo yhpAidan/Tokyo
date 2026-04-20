@@ -61,12 +61,12 @@
     </aside>
 
     <!-- 頂部欄 -->
-    <header class="bg-white/90 backdrop-blur-md border-b border-slate-100 sticky top-0 z-[100] h-20 flex items-center px-4 shadow-sm">
+    <header class="bg-white/90 backdrop-blur-md border-b border-slate-100 sticky top-0 z-[100] h-30 flex items-center px-4 shadow-sm">
         <button onclick="toggleSidebar()" class="interactive-btn w-12 h-12 flex items-center justify-center text-slate-600 rounded-full hover:bg-slate-50">
             <i class="fa-solid fa-bars-staggered text-xl"></i>
         </button>
         <div class="flex-1 px-4 overflow-hidden text-center">
-            <h1 id="top-title" class="text-base font-bold text-slate-800 editable truncate" contenteditable="true">2026 日本深度遊</h1>
+            <h1 id="top-title" class="text-base font-bold text-slate-800 editable truncate" contenteditable="true">2026 踐踏日本國土之旅</h1>
             <p id="top-subtitle" class="text-[10px] text-wa-gold font-bold uppercase tracking-wider editable" contenteditable="true">Day 1 · 5/21</p>
         </div>
         <button onclick="saveFeedback()" class="interactive-btn w-10 h-10 flex items-center justify-center text-emerald-500 rounded-full bg-emerald-50">
