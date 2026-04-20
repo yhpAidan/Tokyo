@@ -1,4 +1,4 @@
-<html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -6,60 +6,107 @@
     <title>2026 踐踏日本國土之旅 | 雲端同步管家</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        window.travelDB = { db, auth, appId, doc, getDoc, setDoc };
-    </script>
-
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
         :root { --wa-red: #d93535; --wa-blue: #2a4073; --wa-gold: #c5a059; --wa-bg: #fdfaf5; }
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--wa-bg); color: #2d2d2d; overflow-x: hidden; }
         h1, h2, .font-serif { font-family: 'Noto Serif TC', serif; }
-        
-        #sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 200; }
-        #sidebar.closed { transform: translateX(-100%); }
-        
-        .page-content { display: none; opacity: 0; transform: translateY(15px); transition: all 0.4s ease-out; }
-        .page-content.active { display: block; opacity: 1; transform: translateY(0); }
-        
         .interactive-btn { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .interactive-btn:hover { transform: scale(1.05); }
         .interactive-btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="p-6">
 
-        /* 側邊選單按鈕強化 */
-        .menu-item { transition: all 0.3s ease; position: relative; overflow: hidden; }
-        .menu-item:hover { transform: translateX(8px) scale(1.02); background: rgba(42, 64, 115, 0.05); }
-        .menu-item.active { background: var(--wa-blue); color: white; box-shadow: 0 10px 15px -3px rgba(42, 64, 115, 0.3); }
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h1 class="text-3xl font-serif text-[var(--wa-blue)] mb-2"><i class="fa-solid fa-plane-departure mr-2"></i>2026 踐踏日本國土之旅</h1>
+        <p id="sync-status" class="text-sm text-gray-500 mb-6"><i class="fa-solid fa-spinner fa-spin mr-1"></i> 連線至雲端中...</p>
 
-        /* 導航列按鈕強化 */
-        .nav-tab { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .nav-tab:hover { transform: translateY(-4px); }
-        .nav-tab.active { box-shadow: 0 8px 20px rgba(42, 64, 115, 0.4); }
+        <div class="mb-4">
+            <label class="block text-gray-700 font-bold mb-2" for="itinerary">行程共同編輯區：</label>
+            <textarea id="itinerary" rows="15" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--wa-gold)] focus:ring-1 focus:ring-[var(--wa-gold)]" placeholder="在這裡輸入你們的行程...例如：第一天 抵達東京..."></textarea>
+        </div>
 
-        .editable { outline: none; border-bottom: 1px dashed transparent; transition: background 0.2s; }
-        .editable:hover { background-color: rgba(197, 160, 89, 0.08); border-radius: 4px; }
-        
-        .budget-item { border-bottom: 1px solid #f1f5f9; }
-        .budget-item:last-child { border-bottom: none; }
-        
-        #loading-overlay { position: fixed; inset: 0; background: white; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        
-        .dragging { opacity: 0.5; transform: scale(0.98); border: 2px dashed var(--wa-gold) !important; }
-        
-        /* 標籤編輯器動畫 */
-        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        .pop-in { animation: popIn 0.2s ease-out forwards; }
+        <button id="save-btn" class="interactive-btn bg-[var(--wa-blue)] text-white font-bold py-3 px-6 rounded-lg shadow-md w-full sm:w-auto">
+            <i class="fa-solid fa-cloud-arrow-up mr-2"></i>儲存並同步至雲端
+        </button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // 特別加入了 onSnapshot 來實現「即時同步」
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 1. 填入你專屬的設定檔
+        const firebaseConfig = {
+            apiKey: "AIzaSyDhNTj3_fzYAToqq3X3IrC-FRkDBlWZShM",
+            authDomain: "tokyo-f003f.firebaseapp.com",
+            projectId: "tokyo-f003f",
+            storageBucket: "tokyo-f003f.firebasestorage.app",
+            messagingSenderId: "962379464999",
+            appId: "1:962379464999:web:8776eae28424d0b0e1a902"
+        };
+
+        // 初始化 Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // 取得畫面上的元素
+        const itineraryArea = document.getElementById('itinerary');
+        const saveBtn = document.getElementById('save-btn');
+        const syncStatus = document.getElementById('sync-status');
+
+        // 指定資料庫中的位置：集合名稱為 'travel_plans', 文件名稱為 'japan_2026'
+        const tripDocRef = doc(db, "travel_plans", "japan_2026");
+
+        // 2. 執行匿名登入
+        signInAnonymously(auth).then(() => {
+            syncStatus.innerHTML = '<span class="text-green-600"><i class="fa-solid fa-circle-check mr-1"></i> 已連線，準備好同步</span>';
+            
+            // 3. 啟動即時監聽 (只要雲端資料有變更，就會自動更新畫面)
+            onSnapshot(tripDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    // 如果自己正在打字，就不覆蓋畫面（避免打到一半被朋友吃掉）
+                    if (document.activeElement !== itineraryArea) {
+                        itineraryArea.value = docSnap.data().content;
+                        syncStatus.innerHTML = '<span class="text-green-600"><i class="fa-solid fa-cloud-arrow-down mr-1"></i> 已接收最新同步內容</span>';
+                    }
+                } else {
+                    console.log("雲端尚未有資料，這將是一份全新的行程表！");
+                }
+            });
+        }).catch((error) => {
+            syncStatus.innerHTML = `<span class="text-red-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 連線失敗：${error.message}</span>`;
+        });
+
+        // 4. 設定儲存按鈕的動作
+        saveBtn.addEventListener('click', async () => {
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>儲存中...';
+            saveBtn.disabled = true;
+
+            try {
+                // 將文字框的內容寫入 Firebase
+                await setDoc(tripDocRef, {
+                    content: itineraryArea.value,
+                    lastUpdated: new Date().toISOString()
+                }, { merge: true }); // merge: true 確保不會蓋掉其他潛在的欄位
+
+                syncStatus.innerHTML = '<span class="text-blue-600"><i class="fa-solid fa-check mr-1"></i> 儲存成功！已同步給朋友。</span>';
+            } catch (error) {
+                console.error("儲存失敗:", error);
+                alert("儲存失敗，請確認你的 Firebase 資料庫權限設定！");
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>        .pop-in { animation: popIn 0.2s ease-out forwards; }
     </style>
 </head>
 <body class="pb-32">
