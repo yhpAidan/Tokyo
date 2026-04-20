@@ -58,7 +58,7 @@
     <aside id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-white shadow-2xl flex flex-col closed">
         <div class="p-8 border-b border-slate-50">
             <h2 class="text-2xl font-bold text-wa-blue font-serif">旅程清單</h2>
-            <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">Cloud Sync Active</p>
+            <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">2026 TOKYO ITINERARY</p>
         </div>
         <div class="flex-1 overflow-y-auto p-4 no-scrollbar">
             <div id="side-nav-list" class="space-y-2"></div>
