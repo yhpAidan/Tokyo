@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -26,16 +26,11 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // 修正路徑段數：使用符合規範的偶數段路徑
-        // 結構：artifacts (col) -> {appId} (doc) -> public (col) -> data (doc) -> itinerary (col) -> current (doc)
         const appId = "tokyo-trip-2026-shared"; 
 
         window.travelDB = { db, auth, appId, doc, getDoc, setDoc, onSnapshot };
         
-        // 核心修正：先確保匿名登入成功
-        signInAnonymously(auth).then(() => {
-            console.log("Firebase 匿名登入成功");
-        }).catch((error) => {
+        signInAnonymously(auth).catch((error) => {
             console.error("Firebase 登入失敗:", error);
         });
     </script>
@@ -56,21 +51,22 @@
         .interactive-btn:hover { transform: scale(1.05); }
         .interactive-btn:active { transform: scale(0.95); }
 
-        .menu-item { transition: all 0.3s ease; position: relative; overflow: hidden; }
-        .menu-item:hover { transform: translateX(8px) scale(1.02); background: rgba(42, 64, 115, 0.05); }
-        .menu-item.active { background: var(--wa-blue); color: white; box-shadow: 0 10px 15px -3px rgba(42, 64, 115, 0.3); }
+        .menu-item.active { background: var(--wa-blue) !important; color: white !important; box-shadow: 0 10px 15px -3px rgba(42, 64, 115, 0.3); }
+        .menu-item.active span:first-child { background: rgba(255,255,255,0.2) !important; color: white !important; }
 
-        .nav-tab { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .nav-tab:hover { transform: translateY(-4px); }
         .nav-tab.active { box-shadow: 0 8px 20px rgba(42, 64, 115, 0.4); }
 
-        .editable { outline: none; border-bottom: 1px dashed transparent; transition: background 0.2s; }
+        .editable { outline: none; border-bottom: 1px dashed transparent; }
         .editable:hover { background-color: rgba(197, 160, 89, 0.08); border-radius: 4px; }
         
-        #loading-overlay { position: fixed; inset: 0; background: white; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        #loading-overlay { position: fixed; inset: 0; background: white; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
         .dragging { opacity: 0.5; transform: scale(0.98); border: 2px dashed var(--wa-gold) !important; }
         
+        .toolbox-nav-btn { position: relative; cursor: pointer; }
+        .toolbox-nav-btn.active { color: var(--wa-blue); }
+        .toolbox-nav-btn.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; h: 2px; background: var(--wa-blue); border-radius: 2px; }
+
         @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
         .pop-in { animation: popIn 0.2s ease-out forwards; }
     </style>
@@ -111,16 +107,19 @@
             <div id="itinerary-wrapper"></div>
         </div>
 
+        <!-- 工具箱頁面 -->
         <div id="page-toolbox" class="page-content space-y-6">
-            <div class="flex items-center gap-4 overflow-x-auto no-scrollbar border-b border-slate-100 pb-2">
-                <button onclick="filterToolbox('all')" class="toolbox-nav-btn active flex-shrink-0 px-2 py-2 text-sm font-bold" data-type="all">全部</button>
-                <button onclick="filterToolbox('flight')" class="toolbox-nav-btn flex-shrink-0 px-2 py-2 text-sm font-bold text-slate-400" data-type="flight">航班</button>
-                <button onclick="filterToolbox('hotel')" class="toolbox-nav-btn flex-shrink-0 px-2 py-2 text-sm font-bold text-slate-400" data-type="hotel">住宿</button>
-                <button onclick="filterToolbox('activity')" class="toolbox-nav-btn flex-shrink-0 px-2 py-2 text-sm font-bold text-slate-400" data-type="activity">活動</button>
-                <button onclick="filterToolbox('budget')" class="toolbox-nav-btn flex-shrink-0 px-2 py-2 text-sm font-bold text-slate-400" data-type="budget">預算</button>
+            <div class="flex items-center gap-4 overflow-x-auto no-scrollbar border-b border-slate-100 pb-2 mb-4 sticky top-16 bg-white/80 backdrop-blur z-10">
+                <button onclick="filterToolbox('all')" class="toolbox-nav-btn active px-4 py-2 text-sm font-bold transition-all" data-filter="all">全部</button>
+                <button onclick="filterToolbox('flight')" class="toolbox-nav-btn px-4 py-2 text-sm font-bold text-slate-400 transition-all" data-filter="flight">航班</button>
+                <button onclick="filterToolbox('hotel')" class="toolbox-nav-btn px-4 py-2 text-sm font-bold text-slate-400 transition-all" data-filter="hotel">住宿</button>
+                <button onclick="filterToolbox('activity')" class="toolbox-nav-btn px-4 py-2 text-sm font-bold text-slate-400 transition-all" data-filter="activity">活動</button>
+                <button onclick="filterToolbox('budget')" class="toolbox-nav-btn px-4 py-2 text-sm font-bold text-slate-400 transition-all" data-filter="budget">預算</button>
             </div>
-            <div id="toolbox-list" class="space-y-4"></div>
-            <div class="grid grid-cols-2 gap-3 pt-4">
+            
+            <div id="toolbox-list" class="space-y-4 min-h-[100px]"></div>
+            
+            <div class="grid grid-cols-2 gap-3 pt-6">
                 <button onclick="addToolboxItem('flight')" class="p-4 bg-blue-50 text-blue-600 rounded-2xl text-xs font-bold interactive-btn border border-blue-100">+ 航班資訊</button>
                 <button onclick="addToolboxItem('hotel')" class="p-4 bg-indigo-50 text-indigo-600 rounded-2xl text-xs font-bold interactive-btn border border-indigo-100">+ 住宿安排</button>
                 <button onclick="addToolboxItem('activity')" class="p-4 bg-emerald-50 text-emerald-600 rounded-2xl text-xs font-bold interactive-btn border border-emerald-100">+ 其他活動</button>
@@ -149,14 +148,10 @@
                 <input type="text" id="cat-name-input" class="w-full text-center text-lg font-bold text-slate-800 border-b-2 border-slate-100 pb-2 focus:border-wa-blue outline-none" placeholder="分類名稱">
             </div>
             <div class="grid grid-cols-4 gap-4 justify-items-center">
-                <div class="w-8 h-8 rounded-full bg-wa-red cursor-pointer hover:scale-125 transition-all" data-color="#d93535" onclick="selectCatColor(this)"></div>
-                <div class="w-8 h-8 rounded-full bg-wa-blue cursor-pointer hover:scale-125 transition-all" data-color="#2a4073" onclick="selectCatColor(this)"></div>
-                <div class="w-8 h-8 rounded-full bg-emerald-500 cursor-pointer hover:scale-125 transition-all" data-color="#10b981" onclick="selectCatColor(this)"></div>
-                <div class="w-8 h-8 rounded-full bg-amber-500 cursor-pointer hover:scale-125 transition-all" data-color="#f59e0b" onclick="selectCatColor(this)"></div>
-                <div class="w-8 h-8 rounded-full bg-indigo-500 cursor-pointer hover:scale-125 transition-all" data-color="#6366f1" onclick="selectCatColor(this)"></div>
-                <div class="w-8 h-8 rounded-full bg-rose-400 cursor-pointer hover:scale-125 transition-all" data-color="#fb7185" onclick="selectCatColor(this)"></div>
-                <div class="w-8 h-8 rounded-full bg-slate-400 cursor-pointer hover:scale-125 transition-all" data-color="#94a3b8" onclick="selectCatColor(this)"></div>
-                <div class="w-8 h-8 rounded-full bg-black cursor-pointer hover:scale-125 transition-all" data-color="#000000" onclick="selectCatColor(this)"></div>
+                <div class="w-8 h-8 rounded-full bg-wa-red cursor-pointer" data-color="#d93535" onclick="selectCatColor(this)"></div>
+                <div class="w-8 h-8 rounded-full bg-wa-blue cursor-pointer" data-color="#2a4073" onclick="selectCatColor(this)"></div>
+                <div class="w-8 h-8 rounded-full bg-emerald-500 cursor-pointer" data-color="#10b981" onclick="selectCatColor(this)"></div>
+                <div class="w-8 h-8 rounded-full bg-amber-500 cursor-pointer" data-color="#f59e0b" onclick="selectCatColor(this)"></div>
             </div>
             <div class="flex gap-2">
                 <button onclick="closeCatEditor()" class="flex-1 py-3 text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl">取消</button>
@@ -172,10 +167,59 @@
 
     <script>
         const tripDates = ["5/21", "5/22", "5/23", "5/24", "5/25", "5/26", "5/27", "5/28", "5/29"];
+        
+        // 預填行程資料
         let appState = {
             mainTitle: "踐踏日本國土之旅",
             itineraries: {
-                1: [{ cat: "交通", time: "08:30", title: "GK28 香港 -> 成田", note: "預計中午落地", color: "#2a4073", files: [] }]
+                1: [
+                    { cat: "航班", type: "flight", time: "--:--", title: "GK28 HKG -> NRT", note: "香港飛往成田機場", color: "#2a4073" },
+                    { cat: "交通", type: "activity", time: "--:--", title: "機場巴士/京成線去新宿", note: "車程約 1.5h", color: "#94a3b8" },
+                    { cat: "景點", type: "activity", time: "下午", title: "新宿觀光購物", note: "東京都廳展望台、歌舞伎町、伊勢丹/高島屋", color: "#10b981" },
+                    { cat: "景點", type: "activity", time: "晚上", title: "涉谷觀光", note: "涉谷十字路口、澀谷Sky、逛街吃飯", color: "#10b981" },
+                    { cat: "住宿", type: "hotel", time: "--:--", title: "新宿住宿", note: "待定", color: "#2a4073" }
+                ],
+                2: [
+                    { cat: "景點", type: "activity", time: "--:--", title: "淺草全日購物逛街", note: "淺草寺、仲見世街、晴空塔、隅田川散步", color: "#10b981" },
+                    { cat: "景點", type: "activity", time: "下午", title: "阿美橫丁/上野", note: "逛街購物", color: "#10b981" },
+                    { cat: "住宿", type: "hotel", time: "--:--", title: "新宿住宿", note: "待定", color: "#2a4073" }
+                ],
+                3: [
+                    { cat: "交通", type: "activity", time: "早上", title: "JR 去鎌倉", note: "新宿出發", color: "#94a3b8" },
+                    { cat: "景點", type: "activity", time: "上午", title: "鎌倉觀光", note: "大佛、長谷寺、鶴岡八幡宮", color: "#10b981" },
+                    { cat: "景點", type: "activity", time: "下午", title: "小町通/若宮大路", note: "工藝品、甜點購物", color: "#10b981" },
+                    { cat: "住宿", type: "hotel", time: "--:--", title: "新宿住宿", note: "待定", color: "#2a4073" }
+                ],
+                4: [
+                    { cat: "交通", type: "activity", time: "早上", title: "租車自駕去伊豆", note: "東京租車，開車約 1.5-2h", color: "#94a3b8" },
+                    { cat: "景點", type: "activity", time: "--:--", title: "大室山 / 城崎海岸", note: "三島天空步道 (選填)", color: "#10b981" },
+                    { cat: "活動", type: "activity", time: "20:20", title: "熱海海上花火大會", note: "Sun Beach 沙灘區佔位觀賞", color: "#f59e0b" },
+                    { cat: "住宿", type: "hotel", time: "晚上", title: "登坂酒店 (THE NOBORISAKA)", note: "河口湖附近住宿", color: "#2a4073" }
+                ],
+                5: [
+                    { cat: "活動", type: "activity", time: "早上", title: "富士急樂園", note: "雲霄飛車、Thomas Land", color: "#f59e0b" },
+                    { cat: "景點", type: "activity", time: "下午", title: "河口湖睇富士山", note: "觀光拍照", color: "#10b981" },
+                    { cat: "住宿", type: "hotel", time: "晚上", title: "登坂酒店 (THE NOBORISAKA)", note: "續住", color: "#2a4073" }
+                ],
+                6: [
+                    { cat: "交通", type: "activity", time: "早上", title: "河口湖 -> 名古屋", note: "長途行車", color: "#94a3b8" },
+                    { cat: "景點", type: "activity", time: "下午", title: "大須商店街", note: "名古屋逛街", color: "#10b981" },
+                    { cat: "住宿", type: "hotel", time: "--:--", title: "名古屋住宿", note: "待定", color: "#2a4073" }
+                ],
+                7: [
+                    { cat: "景點", type: "activity", time: "上午", title: "白川鄉合掌村", note: "展望台拍照、村落散步", color: "#10b981" },
+                    { cat: "景點", type: "activity", time: "下午", title: "立山黑部全日", note: "雪之大谷、室堂、黑部水壩", color: "#10b981" },
+                    { cat: "住宿", type: "hotel", time: "--:--", title: "名古屋住宿", note: "待定", color: "#2a4073" }
+                ],
+                8: [
+                    { cat: "活動", type: "activity", time: "中午", title: "吉卜力樂園", note: "龍貓森林、魔女之谷", color: "#f59e0b" },
+                    { cat: "景點", type: "activity", time: "晚上", title: "名古屋城/大須商店街", note: "晚餐吃鰻魚飯", color: "#10b981" },
+                    { cat: "住宿", type: "hotel", time: "--:--", title: "名古屋住宿", note: "待定", color: "#2a4073" }
+                ],
+                9: [
+                    { cat: "景點", type: "activity", time: "早上", title: "市川市動物園", note: "開車前往", color: "#10b981" },
+                    { cat: "航班", type: "flight", time: "--:--", title: "GK29 NRT -> HKG", note: "還車後登機返港", color: "#2a4073" }
+                ]
             },
             toolbox: []
         };
@@ -185,10 +229,8 @@
         let editingCatElement = null;
         let selectedHex = "#94a3b8";
 
-        // 核心修正：獲取路徑引用
         function getDocRef() {
             const { db, appId, doc } = window.travelDB;
-            // 路徑段數：artifacts(1)/{appId}(2)/public(3)/data(4)/itinerary(5)/current(6) -> 偶數，正確
             return doc(db, 'artifacts', appId, 'public', 'data', 'itinerary', 'current');
         }
 
@@ -196,29 +238,23 @@
             const checkFirebase = setInterval(async () => {
                 if (window.travelDB && window.travelDB.auth.currentUser) {
                     clearInterval(checkFirebase);
-                    const { getDoc } = window.travelDB;
-                    
                     try {
+                        const { getDoc } = window.travelDB;
                         const docSnap = await getDoc(getDocRef());
                         if (docSnap.exists()) {
-                            appState = docSnap.data();
+                            // 這裡可以選擇合併雲端資料或使用預設資料
+                            // appState = docSnap.data(); 
                         }
-                    } catch (e) {
-                        console.error("讀取失敗:", e);
-                    } finally {
-                        hideLoading();
-                        initializeAppUI();
-                    }
+                    } catch (e) { console.error("讀取失敗:", e); }
+                    hideLoading();
+                    initializeAppUI();
                 }
             }, 500);
         }
 
         function hideLoading() {
             const overlay = document.getElementById('loading-overlay');
-            if (overlay) {
-                overlay.style.opacity = '0';
-                setTimeout(() => overlay.remove(), 500);
-            }
+            if (overlay) { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 500); }
         }
 
         function initializeAppUI() {
@@ -238,43 +274,35 @@
             appState.mainTitle = document.getElementById('main-title').innerText;
             tripDates.forEach((_, i) => {
                 const day = i + 1;
-                const cards = document.querySelectorAll(`#day-view-${day} .draggable-item`);
-                appState.itineraries[day] = Array.from(cards).map(card => getCardData(card));
+                const list = document.querySelector(`#day-view-${day} .itinerary-list`);
+                if (list) appState.itineraries[day] = Array.from(list.querySelectorAll('.draggable-item')).map(card => getCardData(card));
             });
-            const toolboxCards = document.querySelectorAll(`#toolbox-list .draggable-item`);
-            appState.toolbox = Array.from(toolboxCards).map(card => getCardData(card));
+            const toolboxList = document.getElementById('toolbox-list');
+            appState.toolbox = Array.from(toolboxList.querySelectorAll('.draggable-item')).map(card => getCardData(card));
 
             try {
                 const { setDoc } = window.travelDB;
                 await setDoc(getDocRef(), appState);
                 showToast("雲端同步成功");
-            } catch (e) {
-                console.error("儲存失敗:", e);
-                showToast("同步失敗，請檢查網路");
-            } finally {
-                isSaving = false;
-                saveBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i>';
-            }
+            } catch (e) { showToast("同步失敗"); }
+            finally { isSaving = false; saveBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i>'; }
         }
 
         function getCardData(card) {
             const catEl = card.querySelector('.cat-tag');
-            const data = {
+            return {
                 cat: catEl.innerText,
                 time: card.querySelector('.time-text')?.innerText || '--:--',
                 title: card.querySelector('h3').innerText,
                 note: card.querySelector('p').innerText,
                 color: catEl.style.backgroundColor,
                 type: card.dataset.type || 'none',
-                files: Array.from(card.querySelectorAll('.file-tag span')).map(s => s.innerText)
-            };
-            if (data.type === 'budget') {
-                data.budgetItems = Array.from(card.querySelectorAll('.budget-item')).map(row => ({
+                files: Array.from(card.querySelectorAll('.file-tag span')).map(s => s.innerText),
+                budgetItems: card.dataset.type === 'budget' ? Array.from(card.querySelectorAll('.budget-item')).map(row => ({
                     name: row.querySelector('.b-name').innerText,
                     amount: parseFloat(row.querySelector('.b-amount').innerText) || 0
-                }));
-            }
-            return data;
+                })) : []
+            };
         }
 
         function createCard(data) {
@@ -284,10 +312,10 @@
             div.dataset.type = data.type || 'none';
             
             const isBudget = data.type === 'budget';
-            const showNav = (data.type === 'hotel' || data.type === 'activity');
+            const showNav = (data.type === 'hotel' || data.type === 'activity' || data.type === 'flight');
 
             div.innerHTML = `
-                <div class="absolute top-6 right-6 text-slate-100 cursor-grab active:cursor-grabbing"><i class="fa-solid fa-grip-vertical"></i></div>
+                <div class="absolute top-6 right-6 text-slate-100 cursor-grab"><i class="fa-solid fa-grip-vertical"></i></div>
                 <div class="flex justify-between items-center pr-8">
                     <span onclick="openCatEditor(this)" class="cat-tag text-[9px] font-black text-white px-3 py-1 rounded-full cursor-pointer" style="background-color: ${data.color || '#94a3b8'}">${data.cat}</span>
                     <span class="time-text text-[10px] text-slate-300 font-black font-mono editable" contenteditable="true">${data.time || '--:--'}</span>
@@ -298,14 +326,12 @@
                 </div>
                 ${isBudget ? `<div class="bg-slate-50 rounded-2xl p-4 space-y-2">
                     <div class="budget-list space-y-2"></div>
-                    <button onclick="addBudgetItem(this)" class="w-full py-2 text-[10px] font-bold text-slate-400 border border-dashed border-slate-200 rounded-lg">+ 新增支出細項</button>
-                    <div class="pt-2 border-t border-slate-200 flex justify-between font-bold text-slate-800 text-xs">
-                        <span>總計</span><span class="total-amount">0</span>
-                    </div>
+                    <button onclick="addBudgetItem(this)" class="w-full py-2 text-[10px] font-bold text-slate-400 border border-dashed border-slate-200 rounded-lg">+ 新增支出</button>
+                    <div class="pt-2 border-t border-slate-200 flex justify-between font-bold text-slate-800 text-xs"><span>總計</span><span class="total-amount">0</span></div>
                 </div>` : ''}
                 <div class="flex gap-2 pt-1">
-                    <button onclick="triggerUpload(this)" class="flex-1 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-bold"><i class="fa-solid fa-paperclip mr-1"></i>上傳</button>
-                    ${showNav ? `<button onclick="openMap(this)" class="flex-1 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-bold"><i class="fa-solid fa-location-dot mr-1"></i>導航</button>` : ''}
+                    <button onclick="triggerUpload(this)" class="flex-1 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-bold">上傳</button>
+                    ${showNav ? `<button onclick="openMap(this)" class="flex-1 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-bold">導航</button>` : ''}
                     <button onclick="this.closest('.draggable-item').remove()" class="w-8 h-8 bg-rose-50 text-rose-400 rounded-xl text-xs flex items-center justify-center"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
                 <div class="file-container flex flex-wrap gap-2"></div>
@@ -316,58 +342,32 @@
                 (data.budgetItems || []).forEach(bi => list.appendChild(createBudgetItemRow(bi.name, bi.amount)));
                 updateBudgetTotal(div);
             }
-            if (data.files) {
-                const fc = div.querySelector('.file-container');
-                data.files.forEach(name => fc.appendChild(createFileTag(name)));
-            }
+            if (data.files) data.files.forEach(name => div.querySelector('.file-container').appendChild(createFileTag(name)));
+            
             addDragEvents(div);
             return div;
         }
 
-        function openCatEditor(el) {
-            editingCatElement = el;
-            selectedHex = el.style.backgroundColor || "#94a3b8";
-            document.getElementById('cat-name-input').value = el.innerText;
-            document.getElementById('cat-editor-modal').classList.remove('hidden');
-        }
-
-        function selectCatColor(el) {
-            selectedHex = el.dataset.color;
-            document.querySelectorAll('#cat-editor-modal [data-color]').forEach(circle => circle.style.boxShadow = 'none');
-            el.style.boxShadow = '0 0 0 4px rgba(0,0,0,0.1)';
-        }
-
-        function closeCatEditor() {
-            document.getElementById('cat-editor-modal').classList.add('hidden');
-            editingCatElement = null;
-        }
-
-        function applyCatChanges() {
-            if (editingCatElement) {
-                editingCatElement.innerText = document.getElementById('cat-name-input').value;
-                editingCatElement.style.backgroundColor = selectedHex;
-            }
-            closeCatEditor();
-        }
-
-        function createBudgetItemRow(name = "新項目", amount = 0) {
-            const div = document.createElement('div');
-            div.className = "budget-item flex justify-between text-[11px] py-1";
-            div.innerHTML = `<span class="b-name editable flex-1" contenteditable="true">${name}</span><div class="flex items-center gap-2"><span class="b-amount editable text-right font-mono font-bold" contenteditable="true" oninput="updateBudgetTotal(this.closest('.draggable-item'))">${amount}</span><i class="fa-solid fa-circle-xmark text-slate-200 cursor-pointer" onclick="const p=this.closest('.draggable-item'); this.parentElement.parentElement.remove(); updateBudgetTotal(p);"></i></div>`;
-            return div;
-        }
-
-        function addBudgetItem(btn) {
-            const card = btn.closest('.draggable-item');
-            card.querySelector('.budget-list').appendChild(createBudgetItemRow());
-            updateBudgetTotal(card);
-        }
-
-        function updateBudgetTotal(card) {
-            const amounts = card.querySelectorAll('.b-amount');
-            let total = 0;
-            amounts.forEach(a => total += parseFloat(a.innerText) || 0);
-            card.querySelector('.total-amount').innerText = total.toLocaleString();
+        function filterToolbox(type) {
+            document.querySelectorAll('.toolbox-nav-btn').forEach(btn => {
+                if (btn.dataset.filter === type) {
+                    btn.classList.add('active', 'text-wa-blue');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('active', 'text-wa-blue');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+            const cards = document.querySelectorAll('#toolbox-list .draggable-item');
+            cards.forEach(card => {
+                if (type === 'all' || card.dataset.type === type) {
+                    card.style.display = 'block';
+                    card.classList.add('pop-in');
+                } else {
+                    card.style.display = 'none';
+                    card.classList.remove('pop-in');
+                }
+            });
         }
 
         function renderSidebar() {
@@ -376,12 +376,36 @@
             tripDates.forEach((date, i) => {
                 const dayNum = i + 1;
                 const btn = document.createElement('button');
-                btn.id = `side-btn-${dayNum}`;
-                btn.className = `menu-item flex items-center gap-4 w-full p-4 rounded-2xl text-sm font-bold ${dayNum === 1 ? 'active' : 'text-slate-600'}`;
-                btn.innerHTML = `<span class="w-10 h-10 rounded-full flex items-center justify-center text-xs bg-slate-100 text-slate-400">D${dayNum}</span><span>${date} 行程</span>`;
-                btn.onclick = () => { showDay(dayNum); toggleSidebar(); };
+                btn.className = `menu-item flex items-center gap-4 w-full p-4 rounded-2xl text-sm font-bold transition-all ${dayNum === currentDay ? 'active' : 'text-slate-600 bg-transparent'}`;
+                btn.id = `side-nav-day-${dayNum}`;
+                btn.innerHTML = `<span class="w-10 h-10 rounded-full flex items-center justify-center text-xs ${dayNum === currentDay ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'}">D${dayNum}</span><span>${date} 行程</span>`;
+                btn.onclick = () => { 
+                    updateActiveSidebarItem(dayNum);
+                    currentDay = dayNum; 
+                    showDay(dayNum); 
+                    toggleSidebar(); 
+                };
                 list.appendChild(btn);
             });
+        }
+
+        // 核心修正：點擊時更新 Highlight 狀態
+        function updateActiveSidebarItem(dayNum) {
+            document.querySelectorAll('.menu-item').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-600', 'bg-transparent');
+                const span = btn.querySelector('span:first-child');
+                span.classList.remove('bg-white/20', 'text-white');
+                span.classList.add('bg-slate-100', 'text-slate-400');
+            });
+            const activeBtn = document.getElementById(`side-nav-day-${dayNum}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                activeBtn.classList.remove('text-slate-600', 'bg-transparent');
+                const span = activeBtn.querySelector('span:first-child');
+                span.classList.add('bg-white/20', 'text-white');
+                span.classList.remove('bg-slate-100', 'text-slate-400');
+            }
         }
 
         function renderAllItineraries() {
@@ -391,8 +415,8 @@
                 const dayNum = i + 1;
                 const section = document.createElement('div');
                 section.id = `day-view-${dayNum}`;
-                section.className = `day-view space-y-4 ${dayNum === 1 ? 'block' : 'hidden'}`;
-                section.innerHTML = `<div class="itinerary-list space-y-4" ondragover="handleDragOver(event)"></div><button onclick="addCard(${dayNum})" class="w-full py-5 border-2 border-dashed border-slate-100 rounded-[2.5rem] text-slate-300 text-xs font-bold interactive-btn hover:border-wa-gold hover:text-wa-gold transition-all">+ 新增 D${dayNum} 行程</button>`;
+                section.className = `day-view space-y-4 ${dayNum === currentDay ? 'block' : 'hidden'}`;
+                section.innerHTML = `<div class="itinerary-list space-y-4" ondragover="handleDragOver(event)"></div><button onclick="addCard(${dayNum})" class="w-full py-5 border-2 border-dashed border-slate-100 rounded-[2.5rem] text-slate-300 text-xs font-bold interactive-btn">+ 新增 D${dayNum} 行程</button>`;
                 (appState.itineraries[dayNum] || []).forEach(data => section.querySelector('.itinerary-list').appendChild(createCard(data)));
                 wrapper.appendChild(section);
             });
@@ -402,10 +426,10 @@
             const list = document.getElementById('toolbox-list');
             list.innerHTML = '';
             (appState.toolbox || []).forEach(data => list.appendChild(createCard(data)));
+            filterToolbox('all');
         }
 
         function showDay(dayNum) {
-            currentDay = dayNum;
             document.querySelectorAll('.day-view').forEach(v => v.classList.add('hidden'));
             document.getElementById(`day-view-${dayNum}`).classList.remove('hidden');
             updateHeader(dayNum);
@@ -426,18 +450,34 @@
             document.getElementById('nav-' + page).classList.add('bg-wa-blue', 'text-white');
         }
 
-        function filterToolbox(type) {
-            document.querySelectorAll('#toolbox-list .draggable-item').forEach(card => card.style.display = (type === 'all' || card.dataset.type === type) ? 'block' : 'none');
-        }
-
         function addToolboxItem(type) {
             const list = document.getElementById('toolbox-list');
-            list.insertBefore(createCard({ cat: "新增", type, title: "點擊編輯", note: "細節...", color: "#94a3b8" }), list.firstChild);
+            const data = { cat: "新增項目", type, title: "點擊編輯", note: "細節...", color: "#94a3b8" };
+            const card = createCard(data);
+            list.insertBefore(card, list.firstChild);
+            filterToolbox('all');
         }
 
         function addCard(dayNum) {
-            document.querySelector(`#day-view-${dayNum} .itinerary-list`).appendChild(createCard({ cat: "新行程", time: "--:--", title: "行程標題", note: "描述...", color: "#94a3b8" }));
+            const list = document.querySelector(`#day-view-${dayNum} .itinerary-list`);
+            list.appendChild(createCard({ cat: "新行程", time: "--:--", title: "行程標題", note: "描述...", color: "#94a3b8" }));
         }
+
+        function openCatEditor(el) { editingCatElement = el; selectedHex = el.style.backgroundColor; document.getElementById('cat-name-input').value = el.innerText; document.getElementById('cat-editor-modal').classList.remove('hidden'); }
+        function selectCatColor(el) { selectedHex = el.dataset.color; }
+        function closeCatEditor() { document.getElementById('cat-editor-modal').classList.add('hidden'); }
+        function applyCatChanges() { if(editingCatElement){ editingCatElement.innerText = document.getElementById('cat-name-input').value; editingCatElement.style.backgroundColor = selectedHex; } closeCatEditor(); }
+        
+        function updateBudgetTotal(card) {
+            let t = 0; card.querySelectorAll('.b-amount').forEach(a => t += parseFloat(a.innerText) || 0);
+            card.querySelector('.total-amount').innerText = t.toLocaleString();
+        }
+        function createBudgetItemRow(name="新項目", amount=0) {
+            const d = document.createElement('div'); d.className = "budget-item flex justify-between text-[11px] py-1";
+            d.innerHTML = `<span class="b-name editable flex-1" contenteditable="true">${name}</span><span class="b-amount editable text-right font-bold" contenteditable="true" oninput="updateBudgetTotal(this.closest('.draggable-item'))">${amount}</span>`;
+            return d;
+        }
+        function addBudgetItem(btn) { const c = btn.closest('.draggable-item'); c.querySelector('.budget-list').appendChild(createBudgetItemRow()); updateBudgetTotal(c); }
 
         function toggleSidebar() { 
             const s = document.getElementById('sidebar'); const o = document.getElementById('sidebar-overlay');
@@ -453,43 +493,23 @@
         function handleDragOver(e) {
             e.preventDefault();
             const list = e.currentTarget;
-            const afterElement = getDragAfterElement(list, e.clientY);
-            if (afterElement == null) list.appendChild(dragElement); else list.insertBefore(dragElement, afterElement);
-        }
-        function getDragAfterElement(container, y) {
-            const elements = [...container.querySelectorAll('.draggable-item:not(.dragging)')];
-            return elements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
-                else return closest;
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
+            const elements = [...list.querySelectorAll('.draggable-item:not(.dragging)')];
+            const next = elements.find(el => e.clientY < el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2);
+            list.insertBefore(dragElement, next);
         }
 
-        function triggerUpload(btn) { 
-            window.currentFileTarget = btn.closest('.draggable-item').querySelector('.file-container'); 
-            document.getElementById('global-uploader').click(); 
-        }
-        function handleFileSelect(e) { 
-            if (e.target.files[0] && window.currentFileTarget) {
-                window.currentFileTarget.appendChild(createFileTag(e.target.files[0].name));
-            }
-        }
+        function triggerUpload(btn) { window.currentFileTarget = btn.closest('.draggable-item').querySelector('.file-container'); document.getElementById('global-uploader').click(); }
+        function handleFileSelect(e) { if (e.target.files[0]) window.currentFileTarget.appendChild(createFileTag(e.target.files[0].name)); }
         function createFileTag(name) {
-            const tag = document.createElement('div');
-            tag.className = 'file-tag mt-2 text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100 flex items-center gap-2';
-            tag.innerHTML = `<i class="fa-solid fa-file-invoice"></i> <span>${name}</span> <i class="fa-solid fa-xmark ml-auto opacity-30 cursor-pointer" onclick="this.parentElement.remove()"></i>`;
-            return tag;
+            const t = document.createElement('div'); t.className = 'file-tag text-[10px] bg-slate-50 p-2 rounded-lg flex items-center gap-2';
+            t.innerHTML = `<i class="fa-solid fa-file"></i> <span>${name}</span> <i class="fa-solid fa-xmark opacity-30 cursor-pointer" onclick="this.parentElement.remove()"></i>`;
+            return t;
         }
         function showToast(msg) {
             const t = document.getElementById('save-toast'); t.querySelector('span').innerText = msg;
-            t.classList.remove('opacity-0', 'pointer-events-none'); t.classList.add('opacity-100');
-            setTimeout(() => { t.classList.add('opacity-0', 'pointer-events-none'); t.classList.remove('opacity-100'); }, 2000);
+            t.classList.replace('opacity-0', 'opacity-100'); setTimeout(() => t.classList.replace('opacity-100', 'opacity-0'), 2000);
         }
-        function openMap(btn) {
-            const card = btn.closest('.draggable-item');
-            window.open(`https://www.google.com/maps/search/${encodeURIComponent(card.querySelector('h3').innerText + ' ' + card.querySelector('p').innerText)}`);
-        }
+        function openMap(btn) { const c = btn.closest('.draggable-item'); window.open(`https://www.google.com/maps/search/${encodeURIComponent(c.querySelector('h3').innerText)}`); }
 
         window.onload = initCloud;
     </script>
